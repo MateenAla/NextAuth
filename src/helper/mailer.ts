@@ -23,20 +23,26 @@ export const sendEmail = async ({ email, emailtype, userId }: any) => {
       );
     }
     // Looking to send emails in production? Check out our Email API/SMTP product!
-    const transporter = nodemailer.createTransport({
+    const transporter= nodemailer.createTransport({
       host: "sandbox.smtp.mailtrap.io",
       port: 2525,
       auth: {
         user: "78e77cdad90d0d",
-        pass: "9d185222bb6c9b",
-      },
+        pass: "********6c9b"
+      }
     });
     // send mail with defined transport object
     const mailOptions = {
       from: "maddison53@ethereal.email",
       to: email,
       subject: "Email Verification",
-      html: `Hello ${emailtype} ${userId}`,
+      html: ` <p>Click
+        <a href="${process.env.DOMAIN}/verifyemail?token=${hashedToken}">Here</a>
+        ${emailtype === "Verification" ? "to verify your email" : "to reset your password"}
+        <br />
+        ${process.env.DOMAIN}/verifyemail?token=${hashedToken}
+        <br />
+      </p>`,
     };
 
     const emailResponse = await transporter.sendMail(mailOptions);
