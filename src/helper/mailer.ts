@@ -5,50 +5,61 @@ import { connectDB } from "@/dbconnection/db";
 import bcrypt from "bcryptjs";
 
 await connectDB();
+
 export const sendEmail = async ({ email, emailtype, userId }: any) => {
   try {
-    const hashedToken = await bcrypt.hash(userId, 10);
-    if (emailtype === "Verification") {
-      await User.findOneAndUpdate(
-        { userId },
-        { verifyToken: hashedToken, verifyTokenExpiry: Date.now() + 3600000 }
-      );
-    } else if (emailtype === "PasswordReset") {
-      await User.findOneAndUpdate(
-        { userId },
-        {
-          forgotPasswordToken: hashedToken,
-          forgotPasswordTokenExpiry: Date.now() + 3600000,
-        }
-      );
+    if (!email || !emailtype || !userId) {
+      throw new Error("Missing required parameters: email, emailtype, or userId");
     }
-    // Looking to send emails in production? Check out our Email API/SMTP product!
+
+    const hashedToken = await bcrypt.hash(String(userId), 10);
+
+    let updateField;
+    if (emailtype === "Verification") {
+      updateField = { verifyToken: hashedToken, verifyTokenExpiry: Date.now() + 3600000 };
+    } else if (emailtype === "PasswordReset") {
+      updateField = { forgotPasswordToken: hashedToken, forgotPasswordTokenExpiry: Date.now() + 3600000 };
+    } else {
+      throw new Error("Invalid emailtype");
+    }
+
+    const updatedUser = await User.findOneAndUpdate(
+      { _id: userId }, // Ensure you are using `_id`
+      updateField,
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      throw new Error("User not found");
+    }
+
     const transporter= nodemailer.createTransport({
       host: "sandbox.smtp.mailtrap.io",
-      port: 2525,
+      port: 587,//2525,
+      secure: false, // Use `true` if port 465
       auth: {
         user: "78e77cdad90d0d",
-        pass: "********6c9b"
+        pass: "9d185222bb6c9b"
       }
     });
-    // send mail with defined transport object
+
     const mailOptions = {
       from: "maddison53@ethereal.email",
       to: email,
       subject: "Email Verification",
-      html: ` <p>Click
+      html: `<p>Click
         <a href="${process.env.DOMAIN}/verifyemail?token=${hashedToken}">Here</a>
         ${emailtype === "Verification" ? "to verify your email" : "to reset your password"}
         <br />
-        ${process.env.DOMAIN}/verifyemail?token=${hashedToken}
+        ${process.env.DOMAIN}/api/users/verifyemail?token=${hashedToken}
         <br />
       </p>`,
     };
 
     const emailResponse = await transporter.sendMail(mailOptions);
-
     return emailResponse;
   } catch (error: any) {
-    throw new Error(error);
+    console.error("Email sending failed:", error);
+    throw new Error(error.message || "Email sending error");
   }
 };

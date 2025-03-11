@@ -33,9 +33,9 @@ export async function POST(request: NextRequest) {
         const savedUser = await User.create({ username, email, password: hashedPassword });
 
         // Send verification email
+        console.log("User created successfully:", savedUser);
         await sendEmail({ email, emailtype: "Verification", userId: savedUser._id });
 
-        console.log("User created successfully:", savedUser);
         return NextResponse.json({ message: "User created successfully", savedUser, success: true }, { status: 201 });
     } catch (error: any) {
         console.error("Error in POST /signup:", error);
