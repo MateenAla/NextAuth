@@ -5,6 +5,7 @@ import { connectDB } from "@/dbconnection/db";
 import User from "@/models/UserModel";
 import bcrypt from "bcryptjs";
 import { sendEmail } from "@/helper/mailer";
+import jwt from "jsonwebtoken";
 
 
 export async function POST(request: NextRequest) {
@@ -30,6 +31,22 @@ export async function POST(request: NextRequest) {
         if (!isMatch) {
             return NextResponse.json({ error: "Invalid credentials" }, { status: 400 });
         }
+
+        // Generate JWT token
+        const payload = {
+           id: existedUser._id,
+           username: existedUser.username,
+           email: existedUser.email,
+        };
+        const token = jwt.sign(payload, process.env.JWT_SECRET!, { expiresIn: "1d" });
+
+        const response = NextResponse.json({ message: "User logged in successfully", success: true });
+        response.cookies.set("token", token, {
+            httpOnly: true,
+        });
+
+        return response;
+
         
     } catch (error: any) {
         console.error("Error in POST /verifyemail:", error);
