@@ -14,24 +14,33 @@ export const sendEmail = async ({ email, emailtype, userId }: any) => {
 
     const hashedToken = await bcrypt.hash(String(userId), 10);
 
-    let updateField;
     if (emailtype === "Verification") {
-      updateField = { verifyToken: hashedToken, verifyTokenExpiry: Date.now() + 3600000 };
+      await User.findOneAndUpdate(
+        { _id: userId },
+        { $set: { 
+            verifyToken: hashedToken, 
+            verifyTokenExpiry: Date.now() + 3600000 
+          }}
+      );
+      // updateField = { verifyToken: hashedToken, verifyTokenExpiry: Date.now() + 3600000 };
     } else if (emailtype === "PasswordReset") {
-      updateField = { forgotPasswordToken: hashedToken, forgotPasswordTokenExpiry: Date.now() + 3600000 };
+      await User.findOneAndUpdate(
+        { _id: userId },
+        { $set: {
+            forgotPasswordToken: hashedToken,
+            forgotPasswordTokenExpiry: Date.now() + 3600000 
+          }}
+      );
+      // updateField = { forgotPasswordToken: hashedToken, forgotPasswordTokenExpiry: Date.now() + 3600000 };
     } else {
       throw new Error("Invalid emailtype");
     }
 
-    const updatedUser = await User.findOneAndUpdate(
-      { _id: userId }, // Ensure you are using `_id`
-      updateField,
-      { new: true }
-    );
+    
 
-    if (!updatedUser) {
-      throw new Error("User not found");
-    }
+    // if (!updatedUser) {
+    //   throw new Error("User not found");
+    // }
 
     const transporter= nodemailer.createTransport({
       host: "sandbox.smtp.mailtrap.io",
@@ -51,7 +60,7 @@ export const sendEmail = async ({ email, emailtype, userId }: any) => {
         <a href="${process.env.DOMAIN}/verifyemail?token=${hashedToken}">Here</a>
         ${emailtype === "Verification" ? "to verify your email" : "to reset your password"}
         <br />
-        ${process.env.DOMAIN}/api/users/verifyemail?token=${hashedToken}
+        ${process.env.DOMAIN}/verifyemail?token=${hashedToken}
         <br />
       </p>`,
     };
